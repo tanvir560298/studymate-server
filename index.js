@@ -6,14 +6,11 @@ const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const app = express();
 const port = process.env.PORT || 5000;
 
-// middleware
 app.use(cors());
 app.use(express.json());
 
-// mongodb uri
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.mfz0bkx.mongodb.net/studymateDB?retryWrites=true&w=majority&appName=Cluster0`;
 
-// mongodb client
 const client = new MongoClient(uri, {
   serverApi: {
     version: ServerApiVersion.v1,
@@ -22,29 +19,23 @@ const client = new MongoClient(uri, {
   },
 });
 
-// object id validation
 const isValidObjectId = (id) => ObjectId.isValid(id);
 
 async function run() {
   try {
-    // connect mongodb
     await client.connect();
     console.log("MongoDB connected");
 
-    // database + collections
     const db = client.db("studymateDB");
 
     const partnersCollection = db.collection("partners");
     const connectionsCollection = db.collection("connections");
 
-    // root route
     app.get("/", (req, res) => {
       res.send("StudyMate Server is running");
     });
 
-    // =========================
-    // GET ALL PARTNERS
-    // =========================
+
     app.get("/partners", async (req, res) => {
       const search = req.query.search || "";
       const sort = req.query.sort || "";
@@ -60,7 +51,6 @@ async function run() {
 
       const partners = await partnersCollection.find(query).toArray();
 
-      // sort by experience level
       const expOrder = {
         Beginner: 1,
         Intermediate: 2,
@@ -79,9 +69,7 @@ async function run() {
       res.send(partners);
     });
 
-    // =========================
-    // TOP PARTNERS
-    // =========================
+ 
     app.get("/partners-top", async (req, res) => {
       const limit = Number(req.query.limit || 3);
 
@@ -94,9 +82,7 @@ async function run() {
       res.send(result);
     });
 
-    // =========================
-    // SINGLE PARTNER
-    // =========================
+
     app.get("/partners/:id", async (req, res) => {
       const id = req.params.id;
 
@@ -113,9 +99,6 @@ async function run() {
       res.send(result);
     });
 
-    // =========================
-    // CREATE PARTNER
-    // =========================
     app.post("/partners", async (req, res) => {
       const partner = req.body;
 
@@ -127,9 +110,7 @@ async function run() {
       res.send(result);
     });
 
-    // =========================
-    // SEND CONNECTION REQUEST
-    // =========================
+
     app.post("/connections", async (req, res) => {
       const { partnerId, requesterEmail } = req.body;
 
@@ -140,7 +121,6 @@ async function run() {
         });
       }
 
-      // prevent duplicate request
       const existing = await connectionsCollection.findOne({
         partnerId,
         requesterEmail,
@@ -152,7 +132,6 @@ async function run() {
         });
       }
 
-      // find partner
       const partner = await partnersCollection.findOne({
         _id: new ObjectId(partnerId),
       });
@@ -163,7 +142,6 @@ async function run() {
         });
       }
 
-      // increment partner count
       await partnersCollection.updateOne(
         { _id: new ObjectId(partnerId) },
         {
@@ -173,7 +151,6 @@ async function run() {
         }
       );
 
-      // request document
       const requestDoc = {
         partnerId,
         requesterEmail,
@@ -192,9 +169,7 @@ async function run() {
       res.send(result);
     });
 
-    // =========================
-    // GET MY CONNECTIONS
-    // =========================
+
     app.get("/connections", async (req, res) => {
       const email = req.query.email;
 
@@ -207,9 +182,7 @@ async function run() {
       res.send(result);
     });
 
-    // =========================
-    // UPDATE CONNECTION
-    // =========================
+
     app.patch("/connections/:id", async (req, res) => {
       const id = req.params.id;
 
@@ -233,9 +206,7 @@ async function run() {
       res.send(result);
     });
 
-    // =========================
-    // DELETE CONNECTION
-    // =========================
+
     app.delete("/connections/:id", async (req, res) => {
       const id = req.params.id;
 
@@ -260,7 +231,6 @@ async function run() {
 
 run();
 
-// server running
 app.listen(port, () => {
   console.log(`StudyMate server running on port ${port}`);
 });
