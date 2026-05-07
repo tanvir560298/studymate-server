@@ -6,7 +6,17 @@ const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const app = express();
 const port = process.env.PORT || 5000;
 
-app.use(cors());
+app.use(
+  cors({
+    origin: [
+      "http://localhost:5173",
+      "http://localhost:5175",
+      "https://studymate-client-two.vercel.app",
+    ],
+    credentials: true,
+  })
+);
+
 app.use(express.json());
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.mfz0bkx.mongodb.net/studymateDB?retryWrites=true&w=majority&appName=Cluster0`;
@@ -27,7 +37,6 @@ async function run() {
     console.log("MongoDB connected");
 
     const db = client.db("studymateDB");
-
     const partnersCollection = db.collection("partners");
     const connectionsCollection = db.collection("connections");
 
@@ -35,18 +44,12 @@ async function run() {
       res.send("StudyMate Server is running");
     });
 
-
     app.get("/partners", async (req, res) => {
       const search = req.query.search || "";
       const sort = req.query.sort || "";
 
       const query = search
-        ? {
-            subject: {
-              $regex: search,
-              $options: "i",
-            },
-          }
+        ? { subject: { $regex: search, $options: "i" } }
         : {};
 
       const partners = await partnersCollection.find(query).toArray();
@@ -61,7 +64,6 @@ async function run() {
         partners.sort((a, b) => {
           const av = expOrder[a.experienceLevel] || 999;
           const bv = expOrder[b.experienceLevel] || 999;
-
           return sort === "asc" ? av - bv : bv - av;
         });
       }
@@ -69,7 +71,6 @@ async function run() {
       res.send(partners);
     });
 
- 
     app.get("/partners-top", async (req, res) => {
       const limit = Number(req.query.limit || 3);
 
@@ -82,14 +83,11 @@ async function run() {
       res.send(result);
     });
 
-
     app.get("/partners/:id", async (req, res) => {
       const id = req.params.id;
 
       if (!isValidObjectId(id)) {
-        return res.status(400).send({
-          message: "Invalid partner id",
-        });
+        return res.status(400).send({ message: "Invalid partner id" });
       }
 
       const result = await partnersCollection.findOne({
@@ -106,19 +104,14 @@ async function run() {
       partner.partnerCount = Number(partner.partnerCount || 0);
 
       const result = await partnersCollection.insertOne(partner);
-
       res.send(result);
     });
-
 
     app.post("/connections", async (req, res) => {
       const { partnerId, requesterEmail } = req.body;
 
-      // validate id
       if (!isValidObjectId(partnerId)) {
-        return res.status(400).send({
-          message: "Invalid partner id",
-        });
+        return res.status(400).send({ message: "Invalid partner id" });
       }
 
       const existing = await connectionsCollection.findOne({
@@ -137,83 +130,59 @@ async function run() {
       });
 
       if (!partner) {
-        return res.status(404).send({
-          message: "Partner not found",
-        });
+        return res.status(404).send({ message: "Partner not found" });
       }
 
       await partnersCollection.updateOne(
         { _id: new ObjectId(partnerId) },
-        {
-          $inc: {
-            partnerCount: 1,
-          },
-        }
+        { $inc: { partnerCount: 1 } }
       );
 
       const requestDoc = {
         partnerId,
         requesterEmail,
-
         partnerName: partner.name,
         partnerImage: partner.profileimage,
         subject: partner.subject,
         studyMode: partner.studyMode,
         experienceLevel: partner.experienceLevel,
-
         createdAt: new Date(),
       };
 
       const result = await connectionsCollection.insertOne(requestDoc);
-
       res.send(result);
     });
-
 
     app.get("/connections", async (req, res) => {
       const email = req.query.email;
 
       const result = await connectionsCollection
-        .find({
-          requesterEmail: email,
-        })
+        .find({ requesterEmail: email })
         .toArray();
 
       res.send(result);
     });
 
-
     app.patch("/connections/:id", async (req, res) => {
       const id = req.params.id;
 
       if (!isValidObjectId(id)) {
-        return res.status(400).send({
-          message: "Invalid connection id",
-        });
+        return res.status(400).send({ message: "Invalid connection id" });
       }
 
-      const updatedData = req.body;
-
       const result = await connectionsCollection.updateOne(
-        {
-          _id: new ObjectId(id),
-        },
-        {
-          $set: updatedData,
-        }
+        { _id: new ObjectId(id) },
+        { $set: req.body }
       );
 
       res.send(result);
     });
 
-
     app.delete("/connections/:id", async (req, res) => {
       const id = req.params.id;
 
       if (!isValidObjectId(id)) {
-        return res.status(400).send({
-          message: "Invalid connection id",
-        });
+        return res.status(400).send({ message: "Invalid connection id" });
       }
 
       const result = await connectionsCollection.deleteOne({
