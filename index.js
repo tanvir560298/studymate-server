@@ -12,6 +12,7 @@ app.use(
       "http://localhost:5173",
       "http://localhost:5175",
       "https://studymate-client-two.vercel.app",
+      "https://studymate-client-3peev1qtr-tanvir-ahmads-projects-db10c302.vercel.app"
     ],
     credentials: true,
   })
@@ -33,7 +34,6 @@ const isValidObjectId = (id) => ObjectId.isValid(id);
 
 async function run() {
   try {
-    await client.connect();
     console.log("MongoDB connected");
 
     const db = client.db("studymateDB");
